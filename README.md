@@ -41,6 +41,16 @@ Early development / technical validation.
 
 The immediate milestone is to validate the taste-translation workflow against real Qloo API responses before building the full UI and agent loop.
 
+The next protocol is the [QMBT-2R draft](docs/QMBT_2R_PROTOCOL.md), which is
+**not yet pre-registered** and authorizes no live execution. It preserves the
+frozen evaluator rules and leaves holdout selection and retrieval depth for
+human review. Its static checks run offline:
+
+```powershell
+./scripts/validation/Test-Qmbt2rProtocol.ps1
+./scripts/validation/Test-Qmbt2rProtocol.Tests.ps1
+```
+
 ## Planned stack
 
 - Next.js

@@ -104,3 +104,11 @@ jobs:
           }
 
           Write-Host "QMBT-1 static safety validation passed."
+
+      - name: Validate QMBT-2R draft protocol and offline CI contract
+        shell: pwsh
+        run: ./scripts/validation/Test-Qmbt2rProtocol.ps1
+
+      - name: Test QMBT-2R static validation rejects unsafe changes
+        shell: pwsh
+        run: ./scripts/validation/Test-Qmbt2rProtocol.Tests.ps1
