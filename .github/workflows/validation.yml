@@ -120,3 +120,11 @@ jobs:
       - name: Test pre-Seed locality authorization rejects unsafe changes
         shell: pwsh
         run: ./scripts/validation/Test-Qmbt2rPreseedLocality.Tests.ps1
+
+      - name: Validate QMBT-2R pre-Seed locality V2 offline
+        shell: pwsh
+        run: ./scripts/validation/Test-Qmbt2rPreseedLocalityV2.ps1
+
+      - name: Test QMBT-2R pre-Seed locality V2 classifier and mutation guards
+        shell: pwsh
+        run: ./scripts/validation/Test-Qmbt2rPreseedLocalityV2.Tests.ps1
