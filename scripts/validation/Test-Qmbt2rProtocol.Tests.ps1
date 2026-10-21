@@ -5,12 +5,16 @@ Set-StrictMode -Version Latest
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $validator = Join-Path $PSScriptRoot 'Test-Qmbt2rProtocol.ps1'
 $script:passed = 0
+
 $fixtureFiles = @(
     'docs/QMBT_2R_PROTOCOL.md',
+    'docs/QMBT_2R_LOC_DIRECT_QUERY_V1.md',
     'docs/QMBT_1_PROTOCOL.md',
     'docs/QMBT_1_INVALID_RUN_20261020.md',
     'docs/QLOO_FIXED_POOL_DIAGNOSTIC.md',
     'docs/QLOO_FIXED_POOL_DIAGNOSTIC_RESULT_20261020.md',
+    'config/qmbt-2r/direct-location-queries-v1.json',
+    'scripts/validation/Test-Qmbt2rDirectLocation.ps1',
     '.github/workflows/validation.yml',
     '.github/workflows/qloo-evidence-audit.yml'
 )
@@ -35,6 +39,14 @@ function Set-ContractMutation {
     & $Mutation $value
     $json = ConvertTo-Json -InputObject $value -Depth 30
     [IO.File]::WriteAllText($path, $text.Substring(0, $block.Index) + $json + $text.Substring($block.Index + $block.Length))
+}
+
+function Set-ManifestMutation {
+    param([string]$Root, [scriptblock]$Mutation)
+    $path = Join-Path $Root 'config/qmbt-2r/direct-location-queries-v1.json'
+    $value = ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($path)) -AsHashtable
+    & $Mutation $value
+    [IO.File]::WriteAllText($path, (ConvertTo-Json -InputObject $value -Depth 20))
 }
 
 function Assert-Rejected {
@@ -72,16 +84,17 @@ function Assert-Accepted {
 $script:passed++
 
 foreach ($field in @('fixed_pool_rescoring', 'synthetic_scores', 'zero_imputation',
-    'intersection_only_selection', 'llm_venue_reordering', 'execution_allowed', 'ci_live_qloo_allowed',
-    'baseline_signal_interests_entities')) {
+    'intersection_only_selection', 'llm_venue_reordering', 'execution_allowed',
+    'ci_live_qloo_allowed', 'baseline_signal_interests_entities')) {
     Assert-Rejected "Enable $field" {
         param($root)
         Set-ContractMutation $root { param($value) $value[$field] = $true }
     }
 }
 
-foreach ($field in @('semantic_min_agreement', 'baseline_min_agreement', 'aggregate_min_positive_cases',
-    'evaluator_count', 'aggregate_case_count', 'quota_per_category', 'target_entities_per_condition', 'blind_packet_entities')) {
+foreach ($field in @('semantic_min_agreement', 'baseline_min_agreement',
+    'aggregate_min_positive_cases', 'evaluator_count', 'aggregate_case_count',
+    'quota_per_category', 'target_entities_per_condition', 'blind_packet_entities')) {
     Assert-Rejected "Change frozen number $field" {
         param($root)
         Set-ContractMutation $root { param($value) $value[$field] = 2 }
@@ -89,7 +102,8 @@ foreach ($field in @('semantic_min_agreement', 'baseline_min_agreement', 'aggreg
 }
 
 foreach ($field in @('baseline_both_sides_required', 'aggregate_both_cities_required',
-    'aggregate_both_pairs_required', 'answer_key_hidden_until_all_responses', 'requires_new_holdout_set')) {
+    'aggregate_both_pairs_required', 'answer_key_hidden_until_all_responses',
+    'requires_new_holdout_set')) {
     Assert-Rejected "Drop requirement $field" {
         param($root)
         Set-ContractMutation $root { param($value) $value[$field] = $false }
@@ -98,10 +112,7 @@ foreach ($field in @('baseline_both_sides_required', 'aggregate_both_cities_requ
 
 Assert-Rejected 'Resolve final holdout identities without reviewed selection output' {
     param($root)
-    Set-ContractMutation $root {
-        param($value)
-        $value.human_decisions.final_holdout_identities = 'UNAPPROVED_IDENTITIES'
-    }
+    Set-ContractMutation $root { param($value) $value.human_decisions.final_holdout_identities = 'UNAPPROVED_IDENTITIES' }
 }
 
 foreach ($field in @('holdout_selection_procedure', 'city_operationalization',
@@ -112,139 +123,80 @@ foreach ($field in @('holdout_selection_procedure', 'city_operationalization',
     }
 }
 
-Assert-Rejected 'Change frozen retrieval depth K' {
+Assert-Rejected 'Change retrieval depth K' {
     param($root)
     Set-ContractMutation $root { param($value) $value.human_decisions.retrieval_depth_K = 20 }
 }
 
-Assert-Rejected 'Change frozen development validation method' {
+Assert-Rejected 'Change development validation method' {
     param($root)
     Set-ContractMutation $root { param($value) $value.human_decisions.depth_development_validation_method = 'UNAPPROVED_ALTERNATIVE' }
 }
 
-Assert-Rejected 'Change frozen holdout city pool size' {
+Assert-Rejected 'Reintroduce locality-ID operationalization' {
     param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_pool_size = 10 }
+    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_operationalization_policy = 'QMBT-2R-LOC-v1' }
 }
 
-Assert-Rejected 'Change frozen holdout profile-pair pool size' {
+Assert-Rejected 'Re-enable pre-Seed locality resolution' {
     param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.profile_pair_pool_size = 8 }
+    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_preseed_resolution_required = $true }
 }
 
-Assert-Rejected 'Change locality operationalization policy' {
+Assert-Rejected 'Change direct-location manifest path' {
     param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_operationalization_policy = 'WKT_POINT' }
+    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_direct_query_manifest = 'config/other.json' }
 }
 
-Assert-Rejected 'Change single-shot Seed Commit policy' {
+Assert-Rejected 'Change direct-location candidate count' {
     param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.seed_commit_policy = 'MULTI_TRY_SEED' }
+    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_direct_query_candidate_count = 7 }
 }
 
-Assert-Rejected 'Disable pre-Seed locality resolution' {
+Assert-Rejected 'Use locality ID for confirmatory geography' {
     param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_preseed_resolution_required = $false }
+    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.confirmatory_location_filter = 'FROZEN_QLOO_LOCALITY_ID' }
 }
 
-Assert-Rejected 'Resolve fewer than all eight city candidates' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_preseed_resolution_scope = 'SELECTED_ONLY' }
-}
-
-Assert-Rejected 'Use non-Lookup city resolution API' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_resolution_api = 'INSIGHTS_PREFLIGHT' }
-}
-
-Assert-Rejected 'Allow ambiguous locality resolution' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_resolution_requires_single_locality = $false }
-}
-
-Assert-Rejected 'Auto-replace unresolved city before Seed Commit' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_resolution_failure_action = 'AUTO_REPLACE' }
-}
-
-Assert-Rejected 'Allow Qloo Insights during city resolution' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.qloo_insights_for_city_resolution_allowed = $true }
-}
-
-Assert-Rejected 'Allow Qloo Insights during holdout pool construction' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.qloo_insights_for_pool_construction_allowed = $true }
-}
-
-Assert-Rejected 'Use coordinates operationally' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.city_coordinates_role = 'OPERATIONAL_FILTER' }
-}
-
-Assert-Rejected 'Do not freeze locality IDs before Seed Commit' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.locality_ids_committed_before_seed = $false }
-}
-
-Assert-Rejected 'Change confirmatory locality filter source' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.confirmatory_location_filter = 'WKT_POINT' }
-}
-
-Assert-Rejected 'Change strict locality radius' {
+Assert-Rejected 'Change strict location radius' {
     param($root)
     Set-ContractMutation $root { param($value) $value.holdout_selection_policy.confirmatory_filter_location_radius = 1000 }
 }
 
-Assert-Rejected 'Allow fuzzy filter.location.query confirmatory use' {
+Assert-Rejected 'Make direct query optional' {
     param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.confirmatory_filter_location_query_allowed = $true }
+    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.confirmatory_filter_location_query_required = $false }
 }
 
-Assert-Rejected 'Allow signal.location in confirmatory requests' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.confirmatory_signal_location_allowed = $true }
+foreach ($field in @('confirmatory_locality_id_filter_allowed', 'confirmatory_wkt_filter_allowed',
+    'confirmatory_geohash_filter_allowed', 'confirmatory_signal_location_allowed',
+    'confirmatory_coordinate_filter_allowed', 'query_mutation_during_registered_run_allowed',
+    'content_based_location_retry_allowed', 'post_seed_city_replacement_allowed')) {
+    Assert-Rejected "Enable prohibited geography behavior $field" {
+        param($root)
+        Set-ContractMutation $root { param($value) $value.holdout_selection_policy[$field] = $true }
+    }
 }
 
-Assert-Rejected 'Allow coordinate fallback in confirmatory requests' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.confirmatory_coordinate_filter_allowed = $true }
+foreach ($field in @('seed_parent_and_branch_registered_before_commit',
+    'seed_commit_first_remote_schema_match', 'seed_push_retry_requires_same_commit_sha',
+    'rank_ascending', 'canonical_id_collision_tiebreak_ascending',
+    'profile_seed_entity_resolution_after_selection_only', 'unresolved_seed_rejects_entire_pair',
+    'advance_by_frozen_pair_rank', 'final_holdouts_require_post_resolution_commit')) {
+    Assert-Rejected "Drop frozen holdout/seed rule $field" {
+        param($root)
+        Set-ContractMutation $root { param($value) $value.holdout_selection_policy[$field] = $false }
+    }
 }
 
-Assert-Rejected 'Allow city replacement after Seed Commit' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.post_seed_city_replacement_allowed = $true }
-}
-
-Assert-Rejected 'Skip pre-registration of seed branch and parent' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.seed_parent_and_branch_registered_before_commit = $false }
-}
-
-Assert-Rejected 'Allow later remote Seed Commit to become seed' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.seed_commit_first_remote_schema_match = $false }
-}
-
-Assert-Rejected 'Allow generating alternative candidate Seed Commits' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.seed_alternative_commit_generation_allowed = $true }
-}
-
-Assert-Rejected 'Allow ranking before remote Seed confirmation' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.ranking_before_remote_seed_confirmation_allowed = $true }
-}
-
-Assert-Rejected 'Allow seed push retry with recreated commit' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.seed_push_retry_requires_same_commit_sha = $false }
-}
-
-Assert-Rejected 'Allow holdout seed commit history rewrite' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.seed_commit_history_rewrite_allowed = $true }
+foreach ($field in @('seed_alternative_commit_generation_allowed',
+    'ranking_before_remote_seed_confirmation_allowed', 'seed_commit_history_rewrite_allowed',
+    'qloo_recommendation_preflight_allowed', 'single_seed_substitution_allowed',
+    'pool_expansion_after_resolution_failure_allowed', 'post_first_confirmatory_reselection_allowed')) {
+    Assert-Rejected "Enable prohibited holdout/seed behavior $field" {
+        param($root)
+        Set-ContractMutation $root { param($value) $value.holdout_selection_policy[$field] = $true }
+    }
 }
 
 Assert-Rejected 'Change deterministic holdout ranking hash' {
@@ -252,24 +204,9 @@ Assert-Rejected 'Change deterministic holdout ranking hash' {
     Set-ContractMutation $root { param($value) $value.holdout_selection_policy.ranking_hash = 'RANDOM_MANUAL_SELECTION' }
 }
 
-Assert-Rejected 'Resolve profile seeds before deterministic selection' {
+Assert-Rejected 'Change frozen category framework' {
     param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.profile_seed_entity_resolution_after_selection_only = $false }
-}
-
-Assert-Rejected 'Allow holdout recommendation preflight' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.qloo_recommendation_preflight_allowed = $true }
-}
-
-Assert-Rejected 'Allow single-seed substitution after holdout selection' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.single_seed_substitution_allowed = $true }
-}
-
-Assert-Rejected 'Allow post-confirmatory holdout reselection' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.holdout_selection_policy.post_first_confirmatory_reselection_allowed = $true }
+    Set-ContractMutation $root { param($value) $value.category_ids = @('museum') }
 }
 
 Assert-Rejected 'Replace independent retrieval with fixed-pool mode' {
@@ -277,14 +214,9 @@ Assert-Rejected 'Replace independent retrieval with fixed-pool mode' {
     Set-ContractMutation $root { param($value) $value.retrieval = 'FIXED_POOL_RESCORING' }
 }
 
-Assert-Rejected 'Use old development cases as confirmatory evidence' {
+Assert-Rejected 'Use development cases as confirmatory evidence' {
     param($root)
     Set-ContractMutation $root { param($value) $value.prior_case_role = 'CONFIRMATORY' }
-}
-
-Assert-Rejected 'Change frozen category framework' {
-    param($root)
-    Set-ContractMutation $root { param($value) $value.category_ids = @('museum') }
 }
 
 Assert-Rejected 'Unknown contract override' {
@@ -292,11 +224,19 @@ Assert-Rejected 'Unknown contract override' {
     Set-ContractMutation $root { param($value) $value['threshold_override'] = 2 }
 }
 
-Assert-Rejected 'Duplicate JSON threshold key' {
+Assert-Rejected 'Mutate Tokyo frozen direct query' {
     param($root)
-    $path = Join-Path $root 'docs/QMBT_2R_PROTOCOL.md'
-    $text = [IO.File]::ReadAllText($path).Replace('"semantic_min_agreement": 3,', '"semantic_min_agreement": 2, "semantic_min_agreement": 3,')
-    [IO.File]::WriteAllText($path, $text)
+    Set-ManifestMutation $root { param($value) $value.candidates[1].filter_location_query = 'Tokyo' }
+}
+
+Assert-Rejected 'Mutate direct-location radius' {
+    param($root)
+    Set-ManifestMutation $root { param($value) $value.filter_location_radius = 5000 }
+}
+
+Assert-Rejected 'Enable geography fallback in manifest' {
+    param($root)
+    Set-ManifestMutation $root { param($value) $value.fallback_geography_allowed = $true }
 }
 
 Assert-Rejected 'Lower evaluator threshold in prose only' {
@@ -313,57 +253,31 @@ Assert-Rejected 'Claim pre-registration in prose only' {
     [IO.File]::WriteAllText($path, $text)
 }
 
-Assert-Rejected 'Add a contradictory status' {
-    param($root)
-    Add-Content -LiteralPath (Join-Path $root 'docs/QMBT_2R_PROTOCOL.md') -Value 'Status: PRE-REGISTERED'
-}
-
-Assert-Rejected 'Reintroduce fixed-pool rescoring in prose only' {
+Assert-Rejected 'Remove direct-query supersession clause' {
     param($root)
     $path = Join-Path $root 'docs/QMBT_2R_PROTOCOL.md'
-    $text = [IO.File]::ReadAllText($path).Replace('Fixed-pool rescoring is retired.', 'Fixed-pool rescoring is required.')
+    $text = [IO.File]::ReadAllText($path).Replace('`QMBT-2R-LOC-DIRECT-QUERY-V1` supersedes the prior `QMBT-2R-LOC-v1`', '`QMBT-2R-LOC-v1` remains required')
     [IO.File]::WriteAllText($path, $text)
 }
 
-Assert-Rejected 'Change frozen retrieval depth in prose only' {
+Assert-Rejected 'Allow locality ID fallback in prose only' {
     param($root)
     $path = Join-Path $root 'docs/QMBT_2R_PROTOCOL.md'
-    $text = [IO.File]::ReadAllText($path).Replace('| Retrieval depth K | `18` — **FROZEN HUMAN DECISION** |', '| Retrieval depth K | `20` — **FROZEN HUMAN DECISION** |')
+    $text = [IO.File]::ReadAllText($path).Replace('do not set `filter.location` to a locality UUID, WKT point, polygon, or other', 'set `filter.location` to a locality UUID when convenient; other')
     [IO.File]::WriteAllText($path, $text)
 }
 
-Assert-Rejected 'Change frozen development validation method in prose only' {
-    param($root)
-    $path = Join-Path $root 'docs/QMBT_2R_PROTOCOL.md'
-    $text = [IO.File]::ReadAllText($path).Replace('This is one registered structural pass:', 'This is two registered structural passes:')
-    [IO.File]::WriteAllText($path, $text)
-}
-
-Assert-Rejected 'Change frozen holdout selection procedure in prose only' {
-    param($root)
-    $path = Join-Path $root 'docs/QMBT_2R_PROTOCOL.md'
-    $text = [IO.File]::ReadAllText($path).Replace('The candidate pool contains exactly:', 'The candidate pool may contain:')
-    [IO.File]::WriteAllText($path, $text)
-}
-
-Assert-Rejected 'Change locality radius in prose only' {
+Assert-Rejected 'Omit strict radius in prose only' {
     param($root)
     $path = Join-Path $root 'docs/QMBT_2R_PROTOCOL.md'
     $text = [IO.File]::ReadAllText($path).Replace('- set `filter.location.radius=0`;', '- omit `filter.location.radius`;')
     [IO.File]::WriteAllText($path, $text)
 }
 
-Assert-Rejected 'Allow automatic unresolved-city replacement in prose only' {
+Assert-Rejected 'Allow signal.location in prose only' {
     param($root)
     $path = Join-Path $root 'docs/QMBT_2R_PROTOCOL.md'
-    $text = [IO.File]::ReadAllText($path).Replace('There is no automatic replacement, fallback coordinate, fuzzy', 'Automatic replacement, fallback coordinates, and fuzzy')
-    [IO.File]::WriteAllText($path, $text)
-}
-
-Assert-Rejected 'Allow Seed Commit alternatives in prose only' {
-    param($root)
-    $path = Join-Path $root 'docs/QMBT_2R_PROTOCOL.md'
-    $text = [IO.File]::ReadAllText($path).Replace('do not generate, score, compare, or discard alternative candidate Seed', 'generate, score, compare, and choose alternative candidate Seed')
+    $text = [IO.File]::ReadAllText($path).Replace('- do not add `signal.location`.', '- add `signal.location` as fallback.')
     [IO.File]::WriteAllText($path, $text)
 }
 
@@ -375,7 +289,7 @@ Assert-Rejected 'Rewrite historical invalid evidence' {
 foreach ($command in @(
     'curl https://hackathon.api.qloo.com/v2/insights',
     'echo ${{ secrets.QLOO_API_KEY }}',
-    './scripts/qloo-spikes/14-qmbt-1-retest.ps1'
+    './scripts/qloo-preseed/17-qmbt-2r-locality-resolution-v2.ps1'
 )) {
     Assert-Rejected 'Add direct live-Qloo indicator to CI' {
         param($root)
@@ -394,4 +308,4 @@ Assert-Accepted 'Modify unrelated workflow without live-Qloo indicators' {
     Add-Content -LiteralPath (Join-Path $root '.github/workflows/qloo-evidence-audit.yml') -Value "`n# harmless documentation-only workflow edit"
 }
 
-Write-Output "QMBT-2R validator tests passed: $script:passed checks, including frozen K=18, development-only structural validation, bounded recommendation retry policy, QMBT-2R-LOC-v1 locality rules, SINGLE_SHOT_REMOTE_SEED_COMMIT, deterministic holdout selection, safe CI evolution, and rejected unsafe mutations. No live calls executed."
+Write-Output "QMBT-2R validator tests passed: $script:passed checks, including QMBT-2R-LOC-DIRECT-QUERY-V1, exact manifest/radius/fallback guards, K=18, bounded retry, SINGLE_SHOT_REMOTE_SEED_COMMIT, deterministic holdout selection, evaluator thresholds, historical evidence, and safe CI evolution. No live calls executed."

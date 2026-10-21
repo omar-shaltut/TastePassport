@@ -2,10 +2,10 @@
 
 Status: DRAFT / NOT YET PRE-REGISTERED
 
-This successor skeleton is for human review only. It authorizes no live Qloo
+This successor protocol is for human review only. It authorizes no live Qloo
 Lookup, Insights/recommendation retrieval, holdout inspection, experiment
-execution, or product architecture change. Passing static validation does not
-pre-register the protocol.
+execution, Seed Commit, or product architecture change. Passing static
+validation does not pre-register the protocol or authorize live execution.
 
 ## Evidence and scope
 
@@ -14,11 +14,14 @@ pre-register the protocol.
 - The separately registered [fixed-pool diagnostic](QLOO_FIXED_POOL_DIAGNOSTIC.md)
   [failed](QLOO_FIXED_POOL_DIAGNOSTIC_RESULT_20261020.md). Neither record is
   evidence for or against the product hypothesis; both remain unchanged.
-- Fixed-pool rescoring is retired. No current QMBT-1 harness is repurposed or
-  unlocked by this document.
-- Pair2/Pair3 × Istanbul/London material is development/diagnostic only.
-  The next confirmatory run requires a new holdout set. No new holdouts have
-  been selected or inspected for this draft.
+- The V1 and V2 pre-Seed locality-ID resolution attempts are preserved as
+  diagnostic history. V1 stopped on New York City with `LOCALITY_AMBIGUOUS`; V2
+  resolved New York City and stopped on Tokyo with `LOCALITY_UNRESOLVED`.
+- Fixed-pool rescoring is retired. No QMBT-1 harness or failed locality harness
+  is repurposed or unlocked by this document.
+- Pair2/Pair3 × Istanbul/London material is development/diagnostic only. The
+  next confirmatory run requires a new holdout set. No new holdouts have been
+  selected or inspected for this draft.
 
 ## Estimand and approved retrieval design
 
@@ -58,12 +61,16 @@ filtering remains mandatory and unchanged.
 | Decision | State |
 | --- | --- |
 | Holdout-selection procedure | `COMMIT_SEEDED_FROZEN_POOL_SELECTION_V1` — **FROZEN HUMAN DECISION** |
-| City operationalization | `QMBT-2R-LOC-v1` — **FROZEN HUMAN DECISION** |
+| City operationalization | `QMBT-2R-LOC-DIRECT-QUERY-V1` — **FROZEN HUMAN DECISION** |
 | Seed Commit anti-grinding rule | `SINGLE_SHOT_REMOTE_SEED_COMMIT` — **FROZEN HUMAN DECISION** |
 | Final holdout identities | `HUMAN_DECISION_REQUIRED` |
 | Retrieval depth K | `18` — **FROZEN HUMAN DECISION** |
 | Development-only method for validating K | `PRIOR_CASES_SINGLE_PASS_STRUCTURAL_QUOTA_FEASIBILITY` — **FROZEN HUMAN DECISION** |
 | Live recommendation API retry/stop conditions | `EXACT_REQUEST_BOUNDED_RETRY_V1` — **FROZEN HUMAN DECISION** |
+
+`QMBT-2R-LOC-DIRECT-QUERY-V1` supersedes the prior `QMBT-2R-LOC-v1`
+locality-ID prerequisite. It does not reinterpret V1 or V2 as successful; those
+failed executions remain diagnostic evidence.
 
 `retrieval_depth_K = 18` is frozen before any new retrieval. It is derived
 structurally, not tuned on taste quality. For category position `j` in the fixed
@@ -84,17 +91,12 @@ fill remain operational questions. Semantic quality, affinity magnitudes,
 evaluator preference, or confirmatory holdout output must not be used to change
 K.
 
-The holdout-selection procedure, Qloo-locality city operationalization, and
-single-shot remote Seed Commit rule are frozen below, but the candidate pool and
-final holdout identities are not chosen here. The required pre-Seed locality
-Lookup is also **not authorized by this draft**; it requires a separate reviewed
-execution authorization before any live Qloo request. Building, technically
-resolving, and committing the pool remains a human review gate because the Seed
-Commit irreversibly determines the deterministic ranking. The development-only
-validation method and live recommendation retry/stop policy are also frozen, but
-this draft still authorizes no live retrieval. Any eventual completion requires
-human review, a committed pre-registration, and successful repository validation
-before a separately authorized confirmatory run.
+The holdout-selection procedure, direct-query city operationalization, and
+single-shot remote Seed Commit rule are frozen below, but the final holdout
+identities are not chosen here. This draft authorizes no live retrieval. Any
+eventual completion requires human review, a committed pre-registration, and
+successful repository validation before a separately authorized confirmatory
+run.
 
 ## Development-only validation method for K=18
 
@@ -111,6 +113,14 @@ cases, run exactly three independent conditions: profile side A, profile side B,
 and `UNSIGNALED_QLOO_BASELINE`. Each condition requests the six frozen categories
 independently with `take = 18`. This is one registered structural pass:
 4 cases × 3 conditions × 6 categories = 72 category retrieval requests.
+
+A later direct-location development harness must use frozen direct location
+queries for Istanbul and London under the same geography semantics as the
+confirmatory design: `filter.location.query=<frozen development query>` and
+`filter.location.radius=0`. The exact development query strings and request
+construction must be committed and repository-validated before a separately
+authorized live development pass. No live development request is authorized by
+this protocol amendment.
 
 For each completed category response, record at minimum:
 
@@ -158,9 +168,10 @@ Policy identifier: `EXACT_REQUEST_BOUNDED_RETRY_V1`.
 The purpose of retry is to recover from an incomplete recommendation API attempt,
 never to resample a completed Qloo recommendation response. Every attempt and
 outcome must be logged. A retry must preserve the same request semantics and all
-experiment parameters, including profile signals, city, category, filters,
-`take = 18`, and condition. No parameter mutation, fallback category, entity
-substitution, or result-based retry is allowed.
+experiment parameters, including profile signals, direct location query, radius,
+category, filters, `take = 18`, and condition. No query mutation, parameter
+mutation, geography fallback, fallback category, entity substitution, or
+result-based retry is allowed.
 
 A category request has at most three total attempts: the initial attempt plus
 at most two retries. Retry is permitted only for:
@@ -193,8 +204,8 @@ non-retryable condition occurs, abort the entire registered run as
 A new registered run after such an abort requires explicit human authorization.
 It must use the same frozen protocol unless a separately reviewed protocol
 amendment is committed first. Partial outputs from the aborted run must not be
-used to change K, categories, holdouts, thresholds, retry rules, or any other
-confirmatory choice.
+used to change K, categories, direct location queries, holdouts, thresholds,
+retry rules, or any other confirmatory choice.
 
 Completed valid responses that fail quota assembly are retrieval outcomes, not
 transport errors. In development they produce `DEVELOPMENT_K_NOT_FEASIBLE` under
@@ -203,16 +214,11 @@ the frozen structural gate. In confirmatory execution, the affected case is
 credit, and remains part of the four-case denominator. It must not be dropped,
 replaced, or retried for a different result.
 
-This retry policy applies to recommendation retrieval. The pre-Seed locality
-Lookup described below cannot be executed until a separate authorization freezes
-its exact request and transport-retry handling; no content-based retry or query
-mutation may be introduced there.
-
 ## Holdout selection procedure
 
 Policy identifier: `COMMIT_SEEDED_FROZEN_POOL_SELECTION_V1`.
 
-City operationalization amendment: `QMBT-2R-LOC-v1`.
+City operationalization amendment: `QMBT-2R-LOC-DIRECT-QUERY-V1`.
 
 Seed anti-grinding rule: `SINGLE_SHOT_REMOTE_SEED_COMMIT`.
 
@@ -225,7 +231,7 @@ The candidate pool contains exactly:
 
 - 8 city candidates, all different from the prior development cities Istanbul
   and London, each with an explicit researcher-committed `canonical_id`, country,
-  city label, latitude, and longitude;
+  city label, latitude, longitude, and frozen direct `filter.location.query`;
 - 6 profile-pair candidates; each pair contains two profiles, and each profile
   contains exactly one movie, one brand, and one book seed; and
 - no seed entity used in Pair2 or Pair3, no seed entity repeated anywhere in the
@@ -235,35 +241,35 @@ The candidate pool contains exactly:
 Latitude and longitude are immutable **audit metadata only**. They never define
 the operational geographic filter for confirmatory QMBT-2R.
 
-Before a Seed Commit may exist, all eight city candidates must complete one
-registered technical locality-resolution pass using only the Qloo Lookup /
-Entity Search capability. No Qloo Insights/recommendation call is permitted.
-Eligibility may use only identity fields needed to establish the intended
-locality: Qloo entity ID, name, entity type, and country. Recommendation counts,
-affinity, popularity, rank, venue content, quota fill, or any other performance
-signal must not be inspected or used.
+No pre-Seed Qloo locality-ID resolution is required. No Qloo locality UUID is
+part of city eligibility, Seed Commit construction, ranking, or confirmatory
+geography. The eight candidate city identities remain the already-reviewed
+researcher-committed candidates; their operational direct-query strings are
+frozen in `config/qmbt-2r/direct-location-queries-v1.json` before any new
+holdout recommendation retrieval.
 
-A city is technically eligible only when the registered Lookup procedure
-unambiguously resolves it to exactly one intended `urn:entity:locality`
-consistent with the committed city label and country. The resolved Qloo locality
-ID is then frozen into the candidate pool before the Seed Commit. If any of the
-eight candidates is unresolved, ambiguous, has the wrong type/country, or cannot
-complete the registered identity check, **stop for human review and do not create
-a Seed Commit**. There is no automatic replacement, fallback coordinate, fuzzy
-confirmatory query, or content-based retry. Any reviewed candidate-pool revision
-must undergo a new complete pre-Seed locality-resolution pass before it can be
-committed.
+The frozen direct-query values are:
 
-The pre-Seed locality pass is an identity-validation step only. This protocol
-freezes its methodology but does not authorize the live requests. A separate
-authorization must freeze the exact Lookup request construction and
-transport-only retry handling before the first Qloo Lookup call.
+1. `city:us:new-york-city` — `New York City, United States of America`
+2. `city:jp:tokyo` — `Tokyo, Japan`
+3. `city:fr:paris` — `Paris, France`
+4. `city:mx:mexico-city` — `Mexico City, Mexico`
+5. `city:br:sao-paulo` — `São Paulo, Brazil`
+6. `city:sg:singapore` — `Singapore, Singapore`
+7. `city:au:sydney` — `Sydney, Australia`
+8. `city:za:cape-town` — `Cape Town, South Africa`
+
+These strings are not mutable during a registered run and may not be changed in
+response to sparse, empty, weak, or unfavorable recommendation output. There is
+no fallback to locality ID, WKT, latitude/longitude, geohash, `signal.location`,
+alternative query text, or city replacement. A change to any frozen query is a
+new reviewed protocol amendment, not a retry.
 
 The Seed Commit contains the complete, human-reviewed candidate pool including
-all eight frozen Qloo locality IDs and the deterministic selector. Before
-creating it, the separate Seed authorization must register the target seed
-branch and exact parent commit SHA. The bytes to be committed must already be
-reviewed before `git commit`.
+all eight frozen direct-location query values and the deterministic selector.
+Before creating it, the separate Seed authorization must register the target
+seed branch and exact parent commit SHA. The bytes to be committed must already
+be reviewed before `git commit`.
 
 `SINGLE_SHOT_REMOTE_SEED_COMMIT` means:
 
@@ -290,12 +296,13 @@ After GitHub confirms the Seed Commit, compute for every candidate:
 The separators are the literal ASCII ` | ` sequence shown above and the input is
 UTF-8. Rank ascending by the lowercase hexadecimal SHA-256 digest, with
 `canonical_id` ascending as the deterministic collision tiebreaker. Ranking uses
-the researcher-committed `canonical_id`, not the Qloo locality ID.
+the researcher-committed `canonical_id` and is independent of Qloo geography
+resolution or recommendation performance.
 
 Select the first two ranked city candidates and the first two ranked profile-pair
 candidates. Their cross-product defines exactly four confirmatory
 profile-pair × city cases. No taste-quality, affinity, evaluator, quota-fill,
-popularity, recommendation output, or locality-resolution performance may
+popularity, recommendation output, or prior locality-resolution performance may
 influence this ranking or selection.
 
 For profile seeds only, exact Qloo entity resolution occurs after provisional
@@ -310,37 +317,38 @@ six-pair pool cannot supply two fully resolved pairs, stop for human review; do
 not expand the pool post hoc.
 
 For every confirmatory request, the selected city's operational geography is
-only its frozen Qloo locality ID:
+only its frozen direct query:
 
-- set `filter.location=<frozen qloo locality id>`;
+- set `filter.location.query=<frozen direct query>`;
 - set `filter.location.radius=0`;
-- do not use `filter.location.query`;
-- do not use latitude/longitude as the operational filter; and
+- do not set `filter.location` to a locality UUID, WKT point, polygon, or other
+  geography value;
+- do not use latitude/longitude or geohash as the operational filter; and
 - do not add `signal.location`.
 
 These settings are identical across personalized and
 `UNSIGNALED_QLOO_BASELINE` conditions. No recommendation preflight is allowed.
 A later quota shortfall is handled by the frozen structural-failure rules; it
-cannot justify changing a city, locality ID, or radius.
+cannot justify changing a city, query, or radius.
 
-If a selected frozen locality ID becomes unusable after the Seed Commit or
-pre-registration, abort the affected registered execution as
-`INCOMPLETE_EXECUTION_API_OR_TRANSPORT`. Do not replace the city, advance to the
-next ranked city, fall back to coordinates, use `filter.location.query`, or
-change `filter.location.radius`.
+If the frozen direct query produces a completed valid response that is empty,
+sparse, or cannot fill quota, handle that result under the frozen structural
+rules. Do not mutate the query or geography and do not retry for different
+content. If the request cannot complete under the frozen transport policy,
+classify the registered execution as `INCOMPLETE_EXECUTION_API_OR_TRANSPORT`.
 
 After profile-seed resolution, commit the selected city identities and frozen
-locality IDs, selected profile pairs, all 12 resolved profile-seed entity IDs,
-the Seed Commit SHA, ranking digests, and any whole-pair deterministic skips.
-Only then may a later human review change protocol status from
-`DRAFT / NOT YET PRE-REGISTERED` to a pre-registered state, after repository
+direct-query strings, selected profile pairs, all 12 resolved profile-seed
+entity IDs, the Seed Commit SHA, ranking digests, and any whole-pair
+deterministic skips. Only then may a later human review change protocol status
+from `DRAFT / NOT YET PRE-REGISTERED` to a pre-registered state, after repository
 validation passes.
 
-From the first confirmatory retrieval onward, holdout cities, locality IDs,
-selected profile pairs, seed identities, resolved entity IDs, K, category
-framework, evaluator thresholds, and selection policy are immutable for that
-registered experiment. No failed or weak confirmatory output may trigger
-replacement or reselection.
+From the first confirmatory retrieval onward, holdout cities, direct location
+queries, selected profile pairs, seed identities, resolved entity IDs, K,
+category framework, evaluator thresholds, and selection policy are immutable
+for that registered experiment. No failed or weak confirmatory output may
+trigger replacement or reselection.
 
 ## Static contract
 
@@ -384,7 +392,7 @@ update to make a failing check pass.
   "prior_case_role": "DEVELOPMENT_DIAGNOSTIC_ONLY",
   "holdout_selection_policy": {
     "policy_id": "COMMIT_SEEDED_FROZEN_POOL_SELECTION_V1",
-    "city_operationalization_policy": "QMBT-2R-LOC-v1",
+    "city_operationalization_policy": "QMBT-2R-LOC-DIRECT-QUERY-V1",
     "seed_commit_policy": "SINGLE_SHOT_REMOTE_SEED_COMMIT",
     "city_pool_size": 8,
     "profile_pair_pool_size": 6,
@@ -396,22 +404,20 @@ update to make a failing check pass.
     "unique_seed_entities_across_pool": true,
     "prohibited_theme_exclusion_required": true,
     "city_coordinates_role": "AUDIT_METADATA_ONLY",
-    "city_preseed_resolution_required": true,
-    "city_preseed_resolution_scope": "ALL_8_CANDIDATES",
-    "city_resolution_api": "QLOO_LOOKUP_ENTITY_SEARCH_ONLY",
-    "city_resolution_requires_single_locality": true,
-    "city_resolution_allowed_identity_fields": ["id", "name", "type", "country"],
-    "city_resolution_failure_action": "STOP_FOR_HUMAN_REVIEW_NO_SEED_COMMIT",
-    "qloo_insights_for_city_resolution_allowed": false,
-    "qloo_insights_for_pool_construction_allowed": false,
-    "locality_ids_committed_before_seed": true,
-    "confirmatory_location_filter": "FROZEN_QLOO_LOCALITY_ID",
+    "city_preseed_resolution_required": false,
+    "city_direct_query_manifest": "config/qmbt-2r/direct-location-queries-v1.json",
+    "city_direct_query_candidate_count": 8,
+    "confirmatory_location_filter": "FROZEN_FILTER_LOCATION_QUERY",
     "confirmatory_filter_location_radius": 0,
-    "confirmatory_filter_location_query_allowed": false,
+    "confirmatory_filter_location_query_required": true,
+    "confirmatory_locality_id_filter_allowed": false,
+    "confirmatory_wkt_filter_allowed": false,
+    "confirmatory_geohash_filter_allowed": false,
     "confirmatory_signal_location_allowed": false,
     "confirmatory_coordinate_filter_allowed": false,
+    "query_mutation_during_registered_run_allowed": false,
+    "content_based_location_retry_allowed": false,
     "post_seed_city_replacement_allowed": false,
-    "post_seed_locality_unusable_classification": "INCOMPLETE_EXECUTION_API_OR_TRANSPORT",
     "seed_parent_and_branch_registered_before_commit": true,
     "seed_commit_first_remote_schema_match": true,
     "seed_alternative_commit_generation_allowed": false,
@@ -450,7 +456,7 @@ update to make a failing check pass.
   },
   "human_decisions": {
     "holdout_selection_procedure": "COMMIT_SEEDED_FROZEN_POOL_SELECTION_V1",
-    "city_operationalization": "QMBT-2R-LOC-v1",
+    "city_operationalization": "QMBT-2R-LOC-DIRECT-QUERY-V1",
     "seed_commit_anti_grinding_rule": "SINGLE_SHOT_REMOTE_SEED_COMMIT",
     "final_holdout_identities": "HUMAN_DECISION_REQUIRED",
     "retrieval_depth_K": 18,
@@ -523,24 +529,17 @@ Run the following from the repository root, entirely offline:
 ```powershell
 ./scripts/validation/Test-Qmbt2rProtocol.ps1
 ./scripts/validation/Test-Qmbt2rProtocol.Tests.ps1
+./scripts/validation/Test-Qmbt2rDirectLocation.ps1
+./scripts/validation/Test-Qmbt2rDirectLocation.Tests.ps1
 ```
 
 Repository CI retains its existing PowerShell syntax and QMBT-1 safety checks
-and runs these new checks. The static validator pins the historical evidence
-records and scans repository workflows for direct live-Qloo indicators such as
-the hackathon API host, `QLOO_API_KEY`, or execution/reference of the Qloo spike
-scripts. It intentionally does not freeze the number or complete contents of
-unrelated workflows, so safe CI evolution remains possible. The Qloo evidence
-audit may access public GitHub-hosted Qloo documentation, but it does not call
-the Qloo API or use Qloo secrets. The checks validate the contract, frozen
-evaluator text, evidence preservation, and absence of direct live-Qloo CI
-execution indicators; they cannot establish API feasibility or empirically
-validate the hypothesis. The approved scope, retrieval-design prose, frozen
-K decision, development-only validation method, live recommendation retry/stop
-policy, locality operationalization, single-shot Seed Commit rule,
-holdout-selection policy, and remaining unresolved final holdout identities are
-pinned too, so prose-only changes cannot bypass the static contract.
+and runs these checks. The validators pin historical evidence, the unchanged
+evaluator sections, the frozen K/retry/Seed rules, and the direct-location
+contract. They scan repository workflows for direct live-Qloo indicators.
+Static checks cannot establish API feasibility or empirically validate the
+hypothesis.
 
-Stop at PR review. Live locality Lookup, Seed Commit creation, final holdout
-selection, live recommendation calls, execution harnesses, UI, agent-loop
-expansion, policy changes, and merging are outside this draft task.
+Stop at PR review. Live development requests, Seed Commit creation, final
+holdout selection, live recommendation calls, confirmatory execution, UI,
+agent-loop expansion, policy changes, and merging are outside this draft task.

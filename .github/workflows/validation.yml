@@ -128,3 +128,11 @@ jobs:
       - name: Test QMBT-2R pre-Seed locality V2 classifier and mutation guards
         shell: pwsh
         run: ./scripts/validation/Test-Qmbt2rPreseedLocalityV2.Tests.ps1
+
+      - name: Validate QMBT-2R direct location query manifest offline
+        shell: pwsh
+        run: ./scripts/validation/Test-Qmbt2rDirectLocation.ps1
+
+      - name: Test QMBT-2R direct location mutation guards
+        shell: pwsh
+        run: ./scripts/validation/Test-Qmbt2rDirectLocation.Tests.ps1

@@ -2,7 +2,7 @@ param(
     [string]$RepositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 )
 
-# Offline only: read protocol/workflow text. Never load a retrieval harness.
+# Offline only: read committed protocol/config/workflow text. Never load a live harness.
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
@@ -38,15 +38,11 @@ function Assert-ContractValue {
         $expectedKeys = @($Expected.Keys | Sort-Object)
         $actualKeys = @($Actual.Keys | Sort-Object)
         Assert-Protocol (($expectedKeys -join '|') -ceq ($actualKeys -join '|')) "$Location has missing or unknown fields."
-        foreach ($key in $expectedKeys) {
-            Assert-ContractValue $Expected[$key] $Actual[$key] "$Location.$key"
-        }
+        foreach ($key in $expectedKeys) { Assert-ContractValue $Expected[$key] $Actual[$key] "$Location.$key" }
     } elseif ($Expected -is [array]) {
         Assert-Protocol ($Actual -is [array]) "$Location must be an array."
         Assert-Protocol ($Expected.Count -eq $Actual.Count) "$Location has changed length."
-        for ($i = 0; $i -lt $Expected.Count; $i++) {
-            Assert-ContractValue $Expected[$i] $Actual[$i] "$Location[$i]"
-        }
+        for ($i = 0; $i -lt $Expected.Count; $i++) { Assert-ContractValue $Expected[$i] $Actual[$i] "$Location[$i]" }
     } else {
         $expectedJson = ConvertTo-Json -InputObject $Expected -Compress
         $actualJson = ConvertTo-Json -InputObject $Actual -Compress
@@ -70,6 +66,7 @@ function Get-TextHash {
 $draft = Read-RepositoryText 'docs/QMBT_2R_PROTOCOL.md'
 $statuses = [regex]::Matches($draft, '(?m)^Status: .*$')
 Assert-Protocol ($statuses.Count -eq 1 -and $statuses[0].Value -ceq 'Status: DRAFT / NOT YET PRE-REGISTERED') 'Draft must not authorize execution or claim pre-registration.'
+
 $blocks = [regex]::Matches($draft, '(?ms)^```json\n(.*?)\n```$')
 Assert-Protocol ($blocks.Count -eq 1) 'Expected exactly one JSON static contract.'
 $json = $blocks[0].Groups[1].Value
@@ -81,10 +78,6 @@ try {
     throw "QMBT-2R validation failed: Invalid static contract. $($_.Exception.Message)"
 }
 
-# These values encode approved history plus the human-approved K=18,
-# development-only structural validation, bounded recommendation retry policy,
-# deterministic holdout selection, Qloo locality operationalization, and
-# single-shot remote Seed Commit rule. Final holdout identities remain unresolved.
 $expected = @{
     protocol = 'QMBT-2R'
     status = 'DRAFT / NOT YET PRE-REGISTERED'
@@ -118,7 +111,7 @@ $expected = @{
     prior_case_role = 'DEVELOPMENT_DIAGNOSTIC_ONLY'
     holdout_selection_policy = @{
         policy_id = 'COMMIT_SEEDED_FROZEN_POOL_SELECTION_V1'
-        city_operationalization_policy = 'QMBT-2R-LOC-v1'
+        city_operationalization_policy = 'QMBT-2R-LOC-DIRECT-QUERY-V1'
         seed_commit_policy = 'SINGLE_SHOT_REMOTE_SEED_COMMIT'
         city_pool_size = 8
         profile_pair_pool_size = 6
@@ -130,22 +123,20 @@ $expected = @{
         unique_seed_entities_across_pool = $true
         prohibited_theme_exclusion_required = $true
         city_coordinates_role = 'AUDIT_METADATA_ONLY'
-        city_preseed_resolution_required = $true
-        city_preseed_resolution_scope = 'ALL_8_CANDIDATES'
-        city_resolution_api = 'QLOO_LOOKUP_ENTITY_SEARCH_ONLY'
-        city_resolution_requires_single_locality = $true
-        city_resolution_allowed_identity_fields = @('id', 'name', 'type', 'country')
-        city_resolution_failure_action = 'STOP_FOR_HUMAN_REVIEW_NO_SEED_COMMIT'
-        qloo_insights_for_city_resolution_allowed = $false
-        qloo_insights_for_pool_construction_allowed = $false
-        locality_ids_committed_before_seed = $true
-        confirmatory_location_filter = 'FROZEN_QLOO_LOCALITY_ID'
+        city_preseed_resolution_required = $false
+        city_direct_query_manifest = 'config/qmbt-2r/direct-location-queries-v1.json'
+        city_direct_query_candidate_count = 8
+        confirmatory_location_filter = 'FROZEN_FILTER_LOCATION_QUERY'
         confirmatory_filter_location_radius = 0
-        confirmatory_filter_location_query_allowed = $false
+        confirmatory_filter_location_query_required = $true
+        confirmatory_locality_id_filter_allowed = $false
+        confirmatory_wkt_filter_allowed = $false
+        confirmatory_geohash_filter_allowed = $false
         confirmatory_signal_location_allowed = $false
         confirmatory_coordinate_filter_allowed = $false
+        query_mutation_during_registered_run_allowed = $false
+        content_based_location_retry_allowed = $false
         post_seed_city_replacement_allowed = $false
-        post_seed_locality_unusable_classification = 'INCOMPLETE_EXECUTION_API_OR_TRANSPORT'
         seed_parent_and_branch_registered_before_commit = $true
         seed_commit_first_remote_schema_match = $true
         seed_alternative_commit_generation_allowed = $false
@@ -184,7 +175,7 @@ $expected = @{
     }
     human_decisions = @{
         holdout_selection_procedure = 'COMMIT_SEEDED_FROZEN_POOL_SELECTION_V1'
-        city_operationalization = 'QMBT-2R-LOC-v1'
+        city_operationalization = 'QMBT-2R-LOC-DIRECT-QUERY-V1'
         seed_commit_anti_grinding_rule = 'SINGLE_SHOT_REMOTE_SEED_COMMIT'
         final_holdout_identities = 'HUMAN_DECISION_REQUIRED'
         retrieval_depth_K = 18
@@ -194,25 +185,12 @@ $expected = @{
 }
 Assert-ContractValue $expected $contract
 
-# Protect normative prose as well as JSON: prose-only changes to frozen
-# retrieval, development, retry/stop, holdout/locality/seed rules, or unresolved
-# final holdout identities must fail.
-$sectionPins = @{
-    'Evidence and scope' = '44a8a38766bd5edcc544bdd0273cf3d90ad0e7083fdedcc5e8a55d3bc368b459'
-    'Estimand and approved retrieval design' = '5d8d5b88b17203dcb8548452430de657438efd1ec0704d5ea087d20966c994f2'
-    'Human decisions before pre-registration' = '3cbc56297a1914efcf0f687de64b02145b2b214bfec6855c2bd3b285167227b8'
-    'Development-only validation method for K=18' = 'ffa4ef65169fa9e73a8a40a39488ad9247e596ed965007acd5dc68625dfb1f19'
-    'Live API retry and stop policy' = '47298ff0f8e2dc10b0dd59129b0d296c40bd37c7b1cca9f72feca6f45851b382'
-    'Holdout selection procedure' = 'a75ea41d8eaf2b1378068ff081a35a10ba30a54a90d77063bbdcdd69ae5d83db'
-}
-foreach ($heading in $sectionPins.Keys) {
-    $section = Get-UniqueSection $draft $heading
-    Assert-Protocol ((Get-TextHash $section) -ceq $sectionPins[$heading]) "Approved scope, frozen K, development/retry method, locality/Seed rules, holdout-selection policy, or unresolved final holdout identities changed in '$heading'. Human review required."
+$directValidator = Join-Path $RepositoryRoot 'scripts/validation/Test-Qmbt2rDirectLocation.ps1'
+Assert-Protocol (Test-Path -LiteralPath $directValidator -PathType Leaf) 'Missing direct-location validator.'
+try { & $directValidator -RepositoryRoot $RepositoryRoot > $null } catch {
+    throw "QMBT-2R validation failed: Direct-location contract failed. $($_.Exception.Message)"
 }
 
-# Pin immutable historical evidence only. Workflow structure is intentionally
-# not pinned; unrelated CI may evolve as long as it does not introduce direct
-# live-Qloo execution indicators.
 $evidencePins = @{
     'docs/QMBT_1_PROTOCOL.md' = '2ca54524c33e45237034dcb76f252e7ff7bba23f8bfee2901e9631099f21f7f6'
     'docs/QMBT_1_INVALID_RUN_20261020.md' = 'f0e098bcccb2222a83460d1b8becf8216b162a34f941d6b2946ac71c88d304b6'
@@ -221,23 +199,36 @@ $evidencePins = @{
 }
 foreach ($relativePath in $evidencePins.Keys) {
     $text = Read-RepositoryText $relativePath
-    $hash = Get-TextHash $text
-    Assert-Protocol ($hash -ceq $evidencePins[$relativePath]) "Protected historical evidence changed: $relativePath. Human review required."
+    Assert-Protocol ((Get-TextHash $text) -ceq $evidencePins[$relativePath]) "Protected historical evidence changed: $relativePath. Human review required."
 }
 
-# Scan every repository workflow for direct live-Qloo indicators without
-# freezing workflow count or unrelated workflow content.
+$requiredProse = @(
+    '`QMBT-2R-LOC-DIRECT-QUERY-V1` supersedes the prior `QMBT-2R-LOC-v1`',
+    'No pre-Seed Qloo locality-ID resolution is required.',
+    'set `filter.location.query=<frozen direct query>`;',
+    'set `filter.location.radius=0`;',
+    'do not set `filter.location` to a locality UUID, WKT point, polygon, or other',
+    'do not use latitude/longitude or geohash as the operational filter;',
+    'do not add `signal.location`.',
+    'No recommendation preflight is allowed.',
+    'No failed or weak confirmatory output may trigger replacement or reselection.',
+    'No live development request is authorized by this protocol amendment.'
+)
+$draftNormalized = [regex]::Replace($draft, '\s+', ' ')
+foreach ($fragment in $requiredProse) {
+    $fragmentNormalized = [regex]::Replace($fragment, '\s+', ' ')
+    Assert-Protocol ($draftNormalized.Contains($fragmentNormalized)) "Required normative prose changed or disappeared: $fragment"
+}
+
 $workflowRoot = Join-Path $RepositoryRoot '.github/workflows'
 if (Test-Path -LiteralPath $workflowRoot -PathType Container) {
     $workflows = @(Get-ChildItem -LiteralPath $workflowRoot -Recurse -File |
         Where-Object { $_.Extension -in @('.yml', '.yaml') })
-
     $forbiddenWorkflowPatterns = @(
         [PSCustomObject]@{ Name = 'Qloo hackathon API host'; Pattern = '(?i)hackathon\.api\.qloo\.com' },
         [PSCustomObject]@{ Name = 'Qloo API key'; Pattern = '(?i)\bQLOO_API_KEY\b' },
-        [PSCustomObject]@{ Name = 'Qloo spike-script execution'; Pattern = '(?im)^\s*(?:-\s*)?(?:run:\s*)?(?:&\s*)?(?:pwsh\s+)?(?:\.\/)?scripts\/qloo-spikes\/[^\r\n]*\.ps1\b' }
+        [PSCustomObject]@{ Name = 'Qloo live harness execution'; Pattern = '(?im)^\s*(?:-\s*)?(?:run:\s*)?(?:&\s*)?(?:pwsh\s+)?(?:\.\/)?scripts\/qloo-(?:spikes|preseed)\/[^\r\n]*\.ps1\b' }
     )
-
     foreach ($workflow in $workflows) {
         $relativePath = [IO.Path]::GetRelativePath($RepositoryRoot, $workflow.FullName).Replace('\', '/')
         $workflowText = [IO.File]::ReadAllText($workflow.FullName).Replace("`r`n", "`n")
@@ -254,4 +245,4 @@ foreach ($heading in @('Blind semantic evaluation', 'Baseline evaluation', 'Aggr
     Assert-Protocol ($draftSection -ceq $frozenSection) "Frozen evaluator text changed in '$heading'."
 }
 
-Write-Output 'QMBT-2R static validation passed: draft only; K=18, development-only structural method, bounded recommendation retry policy, QMBT-2R-LOC-v1 locality operationalization, SINGLE_SHOT_REMOTE_SEED_COMMIT, and deterministic holdout selection frozen; final holdout identities unresolved; contract/evaluators/evidence preserved and CI contains no direct live-Qloo indicators. No live calls executed.'
+Write-Output 'QMBT-2R static validation passed: draft only; K=18, quota-matched independent retrieval, QMBT-2R-LOC-DIRECT-QUERY-V1, radius=0, no geography fallbacks, bounded retry policy, SINGLE_SHOT_REMOTE_SEED_COMMIT, deterministic holdout selection, evaluator rules, historical evidence, and offline-only CI are preserved. No live calls executed.'

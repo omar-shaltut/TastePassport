@@ -1,0 +1,41 @@
+{
+  "policy_id": "QMBT-2R-LOC-DIRECT-QUERY-V1",
+  "candidate_count": 8,
+  "filter_location_radius": 0,
+  "coordinates_role": "AUDIT_METADATA_ONLY",
+  "fallback_geography_allowed": false,
+  "candidates": [
+    {
+      "canonical_id": "city:us:new-york-city",
+      "filter_location_query": "New York City, United States of America"
+    },
+    {
+      "canonical_id": "city:jp:tokyo",
+      "filter_location_query": "Tokyo, Japan"
+    },
+    {
+      "canonical_id": "city:fr:paris",
+      "filter_location_query": "Paris, France"
+    },
+    {
+      "canonical_id": "city:mx:mexico-city",
+      "filter_location_query": "Mexico City, Mexico"
+    },
+    {
+      "canonical_id": "city:br:sao-paulo",
+      "filter_location_query": "São Paulo, Brazil"
+    },
+    {
+      "canonical_id": "city:sg:singapore",
+      "filter_location_query": "Singapore, Singapore"
+    },
+    {
+      "canonical_id": "city:au:sydney",
+      "filter_location_query": "Sydney, Australia"
+    },
+    {
+      "canonical_id": "city:za:cape-town",
+      "filter_location_query": "Cape Town, South Africa"
+    }
+  ]
+}
