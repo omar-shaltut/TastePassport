@@ -1,0 +1,167 @@
+name: Qloo Evidence Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - spike/taste-translation-validation
+    paths:
+      - .github/workflows/qloo-evidence-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-audit:
+    name: Qloo API semantics evidence audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout TastePassport
+        uses: actions/checkout@v4
+
+      - name: Clone public Qloo documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/qloo/docs-public.git qloo-docs
+          mkdir -p audit
+          git -C qloo-docs rev-parse HEAD > audit/qloo-docs-commit.txt
+          git -C qloo-docs log -1 --format='%cI %s' > audit/qloo-docs-latest-commit.txt
+
+      - name: Search Qloo documentation for fixed-pool semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          {
+            echo "TastePassport commit: ${GITHUB_SHA}"
+            echo "Qloo docs commit: $(cat audit/qloo-docs-commit.txt)"
+            echo "Qloo docs latest commit: $(cat audit/qloo-docs-latest-commit.txt)"
+            echo
+            echo "Search terms:"
+            echo "- filter.results.entities"
+            echo "- query.affinity"
+            echo "- affinity"
+            echo "- signal.interests.entities"
+            echo "- rerank / ranking / score"
+            echo
+          } > audit/qloo-api-semantics-report.txt
+
+          {
+            grep -RniE -C 5 \
+              'filter\.results\.entities|query\.affinity|signal\.interests\.entities|affinity|rerank|ranking|score' \
+              qloo-docs \
+              --exclude-dir=.git || true
+          } >> audit/qloo-api-semantics-report.txt
+
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $failures = @()
+
+          Get-ChildItem -Path . -Recurse -Filter *.ps1 | ForEach-Object {
+              $tokens = $null
+              $errors = $null
+
+              [System.Management.Automation.Language.Parser]::ParseFile(
+                  $_.FullName,
+                  [ref]$tokens,
+                  [ref]$errors
+              ) | Out-Null
+
+              if ($errors.Count -gt 0) {
+                  $failures += [PSCustomObject]@{
+                      File   = $_.FullName
+                      Errors = ($errors.Message -join " | ")
+                  }
+              }
+          }
+
+          if ($failures.Count -gt 0) {
+              $failures | Format-Table -AutoSize
+              throw "PowerShell syntax validation failed."
+          }
+
+          "All PowerShell files parsed successfully." |
+              Set-Content audit/powershell-syntax.txt
+
+      - name: Validate recorded decision state
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $checks = @(
+              @{
+                  Path = "docs/QMBT_1_INVALID_RUN_20261020.md"
+                  Pattern = "INVALID_EXECUTION_API_SEMANTICS"
+              },
+              @{
+                  Path = "docs/QLOO_FIXED_POOL_DIAGNOSTIC_RESULT_20261020.md"
+                  Pattern = "FAIL_CURRENT_FIXED_POOL_STRATEGY_NOT_VALIDATED"
+              },
+              @{
+                  Path = "docs/QLOO_FIXED_POOL_DIAGNOSTIC.md"
+                  Pattern = "Pre-execution Amendment 1"
+              }
+          )
+
+          $results = @()
+
+          foreach ($check in $checks) {
+              if (-not (Test-Path $check.Path)) {
+                  throw "Missing required evidence file: $($check.Path)"
+              }
+
+              $found = Select-String `
+                  -Path $check.Path `
+                  -Pattern $check.Pattern `
+                  -SimpleMatch `
+                  -Quiet
+
+              if (-not $found) {
+                  throw "Required decision marker missing: $($check.Pattern)"
+              }
+
+              $results += "PASS | $($check.Path) | $($check.Pattern)"
+          }
+
+          $results | Set-Content audit/decision-state.txt
+
+      - name: Build audit summary
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          {
+            echo "# TastePassport Qloo Evidence Audit"
+            echo
+            echo "TastePassport commit: \`${GITHUB_SHA}\`"
+            echo
+            echo "Qloo docs commit: \`$(cat audit/qloo-docs-commit.txt)\`"
+            echo
+            echo "Qloo docs latest commit:"
+            echo
+            cat audit/qloo-docs-latest-commit.txt
+            echo
+            echo "## Deterministic repository checks"
+            echo
+            cat audit/decision-state.txt
+            echo
+            cat audit/powershell-syntax.txt
+            echo
+            echo "## Scope"
+            echo
+            echo "This run does not call the Qloo API, does not use secrets,"
+            echo "does not rerun QMBT, and does not alter confirmatory evidence."
+          } > audit/README.md
+
+      - name: Upload evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qloo-api-semantics-evidence
+          path: audit/
+          if-no-files-found: error
+          retention-days: 14

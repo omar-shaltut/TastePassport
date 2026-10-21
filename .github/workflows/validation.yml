@@ -1,0 +1,106 @@
+name: Repository Validation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  powershell-validation:
+    name: PowerShell and QMBT static validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          $failed = $false
+
+          Get-ChildItem -Path . -Recurse -Filter *.ps1 | ForEach-Object {
+              $tokens = $null
+              $errors = $null
+
+              [System.Management.Automation.Language.Parser]::ParseFile(
+                  $_.FullName,
+                  [ref]$tokens,
+                  [ref]$errors
+              ) | Out-Null
+
+              if ($errors.Count -gt 0) {
+                  Write-Host "::error file=$($_.FullName)::PowerShell syntax validation failed."
+                  $errors | Format-List
+                  $failed = $true
+              }
+          }
+
+          if ($failed) {
+              throw "One or more PowerShell files failed syntax validation."
+          }
+
+          Write-Host "All PowerShell files passed syntax validation."
+
+      - name: Validate QMBT-1 safety invariants
+        shell: pwsh
+        run: |
+          $path = "scripts/qloo-spikes/14-qmbt-1-retest.ps1"
+
+          if (-not (Test-Path $path)) {
+              throw "QMBT-1 harness is missing."
+          }
+
+          $text = [System.IO.File]::ReadAllText(
+              (Resolve-Path $path).Path
+          )
+
+          $checks = @(
+              [PSCustomObject]@{
+                  Name = "Execution unlock is explicit"
+                  Pass = ($text -match 'QMBT-1 EXECUTION UNLOCKED AFTER VALIDATION GATE')
+              },
+              [PSCustomObject]@{
+                  Name = "CategoryTake frozen at 3"
+                  Pass = ($text -match '\[int\]\$CategoryTake\s*=\s*3')
+              },
+              [PSCustomObject]@{
+                  Name = "Unsignaled mode supported"
+                  Pass = ($text -match '\[switch\]\$Unsignaled')
+              },
+              [PSCustomObject]@{
+                  Name = "Quota helper present"
+                  Pass = ($text -match 'function New-QmbtQuotaList')
+              },
+              [PSCustomObject]@{
+                  Name = "Duplicate telemetry present"
+                  Pass = ($text -match 'DuplicateSkipCount')
+              },
+              [PSCustomObject]@{
+                  Name = "Backfill telemetry present"
+                  Pass = ($text -match 'BackfillSelectionCount')
+              },
+              [PSCustomObject]@{
+                  Name = "No Top-10 blind truncation"
+                  Pass = (-not ($text -match 'Select-Object\s+-First\s+10'))
+              },
+              [PSCustomObject]@{
+                  Name = "Old protocol reference absent"
+                  Pass = (-not ($text -match 'TASTE_TRANSLATION_RETEST'))
+              }
+          )
+
+          $checks | Format-Table -AutoSize
+
+          $failures = @(
+              $checks |
+              Where-Object { -not $_.Pass }
+          )
+
+          if ($failures.Count -gt 0) {
+              throw "QMBT-1 static safety validation failed."
+          }
+
+          Write-Host "QMBT-1 static safety validation passed."
