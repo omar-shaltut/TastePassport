@@ -112,3 +112,11 @@ jobs:
       - name: Test QMBT-2R static validation rejects unsafe changes
         shell: pwsh
         run: ./scripts/validation/Test-Qmbt2rProtocol.Tests.ps1
+
+      - name: Validate QMBT-2R pre-Seed locality authorization offline
+        shell: pwsh
+        run: ./scripts/validation/Test-Qmbt2rPreseedLocality.ps1
+
+      - name: Test pre-Seed locality authorization rejects unsafe changes
+        shell: pwsh
+        run: ./scripts/validation/Test-Qmbt2rPreseedLocality.Tests.ps1

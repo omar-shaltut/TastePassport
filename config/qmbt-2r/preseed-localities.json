@@ -1,0 +1,95 @@
+{
+  "protocol": "QMBT-2R-PRESEED-LOCALITY",
+  "version": 1,
+  "candidate_count": 8,
+  "candidates": [
+    {
+      "canonical_id": "city:us:new-york-city",
+      "city_label": "New York City",
+      "country_code": "US",
+      "country_lookup_name": "United States of America",
+      "lookup_query": "New York City, United States of America",
+      "accepted_names": ["New York City", "New York"],
+      "country_aliases": ["United States of America", "United States"],
+      "latitude": 40.7128,
+      "longitude": -74.0060
+    },
+    {
+      "canonical_id": "city:jp:tokyo",
+      "city_label": "Tokyo",
+      "country_code": "JP",
+      "country_lookup_name": "Japan",
+      "lookup_query": "Tokyo, Japan",
+      "accepted_names": ["Tokyo"],
+      "country_aliases": ["Japan"],
+      "latitude": 35.6762,
+      "longitude": 139.6503
+    },
+    {
+      "canonical_id": "city:fr:paris",
+      "city_label": "Paris",
+      "country_code": "FR",
+      "country_lookup_name": "France",
+      "lookup_query": "Paris, France",
+      "accepted_names": ["Paris"],
+      "country_aliases": ["France"],
+      "latitude": 48.8566,
+      "longitude": 2.3522
+    },
+    {
+      "canonical_id": "city:mx:mexico-city",
+      "city_label": "Mexico City",
+      "country_code": "MX",
+      "country_lookup_name": "Mexico",
+      "lookup_query": "Mexico City, Mexico",
+      "accepted_names": ["Mexico City", "Ciudad de México", "Ciudad de Mexico"],
+      "country_aliases": ["Mexico", "México"],
+      "latitude": 19.4326,
+      "longitude": -99.1332
+    },
+    {
+      "canonical_id": "city:br:sao-paulo",
+      "city_label": "São Paulo",
+      "country_code": "BR",
+      "country_lookup_name": "Brazil",
+      "lookup_query": "São Paulo, Brazil",
+      "accepted_names": ["São Paulo", "Sao Paulo"],
+      "country_aliases": ["Brazil", "Brasil"],
+      "latitude": -23.5505,
+      "longitude": -46.6333
+    },
+    {
+      "canonical_id": "city:sg:singapore",
+      "city_label": "Singapore",
+      "country_code": "SG",
+      "country_lookup_name": "Singapore",
+      "lookup_query": "Singapore, Singapore",
+      "accepted_names": ["Singapore"],
+      "country_aliases": ["Singapore"],
+      "latitude": 1.3521,
+      "longitude": 103.8198
+    },
+    {
+      "canonical_id": "city:au:sydney",
+      "city_label": "Sydney",
+      "country_code": "AU",
+      "country_lookup_name": "Australia",
+      "lookup_query": "Sydney, Australia",
+      "accepted_names": ["Sydney"],
+      "country_aliases": ["Australia"],
+      "latitude": -33.8688,
+      "longitude": 151.2093
+    },
+    {
+      "canonical_id": "city:za:cape-town",
+      "city_label": "Cape Town",
+      "country_code": "ZA",
+      "country_lookup_name": "South Africa",
+      "lookup_query": "Cape Town, South Africa",
+      "accepted_names": ["Cape Town"],
+      "country_aliases": ["South Africa"],
+      "latitude": -33.9249,
+      "longitude": 18.4241
+    }
+  ]
+}
