@@ -136,3 +136,11 @@ jobs:
       - name: Test QMBT-2R direct location mutation guards
         shell: pwsh
         run: ./scripts/validation/Test-Qmbt2rDirectLocation.Tests.ps1
+
+      - name: Validate QMBT-2R direct-location development harness offline
+        shell: pwsh
+        run: ./scripts/validation/Test-Qmbt2rDirectLocationDevelopment.ps1
+
+      - name: Test QMBT-2R direct-location development mutation guards
+        shell: pwsh
+        run: ./scripts/validation/Test-Qmbt2rDirectLocationDevelopment.Tests.ps1

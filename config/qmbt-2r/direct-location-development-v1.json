@@ -1,0 +1,60 @@
+{
+  "protocol": "QMBT-2R-DIRECT-LOCATION-DEVELOPMENT-V1",
+  "evidence_class": "DEVELOPMENT_DIAGNOSTIC_ONLY",
+  "source_policy": "QMBT-2R-LOC-DIRECT-QUERY-V1",
+  "live_execution_authorized_by_manifest": false,
+  "api_path": "/v2/insights",
+  "filter_type": "urn:entity:place",
+  "take": 18,
+  "filter_location_radius": 0,
+  "expected_request_count": 72,
+  "cities": [
+    {"city_id": "development:istanbul", "label": "Istanbul", "filter_location_query": "Istanbul"},
+    {"city_id": "development:london", "label": "London", "filter_location_query": "London"}
+  ],
+  "categories": [
+    {"id": "art_gallery", "tag": "urn:tag:category:place:art_gallery"},
+    {"id": "book_store", "tag": "urn:tag:category:place:book_store"},
+    {"id": "museum", "tag": "urn:tag:category:place:museum"},
+    {"id": "park", "tag": "urn:tag:category:place:park"},
+    {"id": "restaurant", "tag": "urn:tag:category:place:restaurant"},
+    {"id": "shopping_mall", "tag": "urn:tag:category:place:shopping_mall"}
+  ],
+  "pairs": [
+    {
+      "pair_id": "2",
+      "profiles": [
+        {"profile_id": "E", "seed_entity_ids": ["3A02361C-987B-4F7E-9AAD-071C3853AD92", "29B49E3F-A0EC-42C6-A453-38B1C20D8374", "439D7BFD-8F08-4248-AEDA-D816DD865C71"]},
+        {"profile_id": "F", "seed_entity_ids": ["DF788007-B5EA-4F29-872B-96BCB8EEC42F", "84B18312-3C2B-41A9-863B-89651C2F6A2C", "6A4CF4C4-B833-44E1-A426-BB312130C9F3"]}
+      ]
+    },
+    {
+      "pair_id": "3",
+      "profiles": [
+        {"profile_id": "G", "seed_entity_ids": ["E4FD5F16-4499-4431-9CA9-115625146109", "DB4CE34E-3A63-4947-946F-9D52502C5762", "1010C15E-3EFA-47D6-911C-1B25026906B5"]},
+        {"profile_id": "H", "seed_entity_ids": ["603C7E42-C952-45CB-8B6F-3B803FEFB2F7", "32F867B9-E6DF-44C3-BCE4-40160C7ED5E4", "AB5E9CA9-E7A4-4D68-A641-FE2276C1C103"]}
+      ]
+    }
+  ],
+  "conditions_per_case": 3,
+  "retry_policy": {
+    "policy_id": "EXACT_REQUEST_BOUNDED_RETRY_V1",
+    "max_attempts": 3,
+    "fallback_backoff_seconds": [2, 8],
+    "retry_after_max_seconds": 120,
+    "retry_completed_valid_response": false,
+    "content_based_retry_allowed": false
+  },
+  "prohibitions": {
+    "locality_id_filter": true,
+    "wkt_filter": true,
+    "coordinate_filter": true,
+    "geohash_filter": true,
+    "signal_location": true,
+    "alternate_query_after_output": true,
+    "city_replacement": true,
+    "recommendation_preflight": true,
+    "content_based_retry": true,
+    "holdout_access": true
+  }
+}
