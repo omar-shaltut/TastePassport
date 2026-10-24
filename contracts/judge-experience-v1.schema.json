@@ -1,0 +1,362 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tastepassport.local/contracts/judge-experience-v1.schema.json",
+  "title": "TastePassport Judge Experience V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "selector_policy_id",
+    "slot_contract_id",
+    "run_id",
+    "state",
+    "input",
+    "slots"
+  ],
+  "properties": {
+    "contract_version": { "const": "JUDGE_EXPERIENCE_V1" },
+    "selector_policy_id": { "const": "LEXIMIN_RANK_V1" },
+    "slot_contract_id": { "const": "CROSS_CATEGORY_SLOT_CONTRACT_V1" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "state": { "$ref": "#/$defs/runState" },
+    "input": { "$ref": "#/$defs/runInput" },
+    "resolved_profiles": {
+      "type": ["array", "null"],
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/resolvedProfile" }
+    },
+    "retrievals": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/retrievalResult" }
+    },
+    "reconciliation": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/categoryReconciliation" }
+    },
+    "slots": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        { "$ref": "#/$defs/cultureSlot" },
+        { "$ref": "#/$defs/outdoorsSlot" },
+        { "$ref": "#/$defs/cityLifeSlot" }
+      ],
+      "items": false
+    },
+    "shared_taste_summary": { "type": ["string", "null"], "maxLength": 600 },
+    "validation": { "$ref": "#/$defs/validationResult" },
+    "error": { "$ref": "#/$defs/runError" }
+  },
+  "$defs": {
+    "runState": {
+      "type": "string",
+      "enum": [
+        "IDLE",
+        "INPUT_READY",
+        "RESOLVING_PROFILES",
+        "RETRIEVING_QLOO",
+        "RECONCILING",
+        "ASSEMBLING_SLOTS",
+        "EXPLAINING",
+        "VALIDATING",
+        "READY",
+        "PARTIAL_READY",
+        "FAILED"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "art_gallery",
+        "book_store",
+        "museum",
+        "park",
+        "restaurant",
+        "shopping_mall"
+      ]
+    },
+    "profileInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile_ref", "display_name"],
+      "properties": {
+        "profile_ref": { "type": "string", "minLength": 1 },
+        "display_name": { "type": "string", "minLength": 1, "maxLength": 80 }
+      }
+    },
+    "runInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["person_a", "person_b", "destination_city"],
+      "properties": {
+        "person_a": { "$ref": "#/$defs/profileInput" },
+        "person_b": { "$ref": "#/$defs/profileInput" },
+        "destination_city": { "type": "string", "minLength": 1, "maxLength": 120 }
+      }
+    },
+    "resolvedProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["side", "profile_ref", "qloo_seed_entity_ids"],
+      "properties": {
+        "side": { "type": "string", "enum": ["A", "B"] },
+        "profile_ref": { "type": "string", "minLength": 1 },
+        "qloo_seed_entity_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "rankedEntity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity_id", "rank"],
+      "properties": {
+        "entity_id": { "type": "string", "minLength": 1 },
+        "rank": { "type": "integer", "minimum": 1, "maximum": 18 },
+        "name": { "type": ["string", "null"] },
+        "display_type": { "type": ["string", "null"] }
+      }
+    },
+    "retrievalResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "side",
+        "category",
+        "destination_city",
+        "status",
+        "entities"
+      ],
+      "properties": {
+        "side": { "type": "string", "enum": ["A", "B"] },
+        "category": { "$ref": "#/$defs/category" },
+        "destination_city": { "type": "string", "minLength": 1 },
+        "status": {
+          "type": "string",
+          "enum": ["COMPLETE", "EVIDENCE_UNAVAILABLE"]
+        },
+        "entities": {
+          "type": "array",
+          "maxItems": 18,
+          "items": { "$ref": "#/$defs/rankedEntity" }
+        }
+      }
+    },
+    "sharedCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "retrieval_category",
+        "rank_a",
+        "rank_b",
+        "worst_rank",
+        "total_rank"
+      ],
+      "properties": {
+        "entity_id": { "type": "string", "minLength": 1 },
+        "name": { "type": ["string", "null"] },
+        "display_type": { "type": ["string", "null"] },
+        "retrieval_category": { "$ref": "#/$defs/category" },
+        "rank_a": { "type": "integer", "minimum": 1, "maximum": 18 },
+        "rank_b": { "type": "integer", "minimum": 1, "maximum": 18 },
+        "worst_rank": { "type": "integer", "minimum": 1, "maximum": 18 },
+        "total_rank": { "type": "integer", "minimum": 2, "maximum": 36 }
+      }
+    },
+    "categoryReconciliation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "status", "ordered_shared_candidates"],
+      "properties": {
+        "category": { "$ref": "#/$defs/category" },
+        "status": {
+          "type": "string",
+          "enum": [
+            "SHARED_CANDIDATES_AVAILABLE",
+            "NO_SHARED_QLOO_EVIDENCE",
+            "EVIDENCE_UNAVAILABLE"
+          ]
+        },
+        "ordered_shared_candidates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sharedCandidate" }
+        }
+      }
+    },
+    "selectedVenue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "retrieval_category",
+        "rank_a",
+        "rank_b",
+        "worst_rank",
+        "total_rank"
+      ],
+      "properties": {
+        "entity_id": { "type": "string", "minLength": 1 },
+        "name": { "type": ["string", "null"] },
+        "display_type": { "type": ["string", "null"] },
+        "retrieval_category": { "$ref": "#/$defs/category" },
+        "rank_a": { "type": "integer", "minimum": 1, "maximum": 18 },
+        "rank_b": { "type": "integer", "minimum": 1, "maximum": 18 },
+        "worst_rank": { "type": "integer", "minimum": 1, "maximum": 18 },
+        "total_rank": { "type": "integer", "minimum": 2, "maximum": 36 },
+        "why_it_works": { "type": ["string", "null"], "maxLength": 500 }
+      }
+    },
+    "slotStatus": {
+      "type": "string",
+      "enum": [
+        "SHARED_PRIMARY",
+        "NO_SHARED_QLOO_EVIDENCE",
+        "EVIDENCE_UNAVAILABLE"
+      ]
+    },
+    "cultureSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot_id", "status", "resolved_category", "selected"],
+      "properties": {
+        "slot_id": { "const": "CULTURE" },
+        "status": { "$ref": "#/$defs/slotStatus" },
+        "resolved_category": {
+          "type": ["string", "null"],
+          "enum": ["museum", "art_gallery", "book_store", null]
+        },
+        "selected": {
+          "anyOf": [
+            { "$ref": "#/$defs/selectedVenue" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "SHARED_PRIMARY" } } },
+          "then": {
+            "properties": {
+              "selected": { "$ref": "#/$defs/selectedVenue" },
+              "resolved_category": { "enum": ["museum", "art_gallery", "book_store"] }
+            }
+          },
+          "else": { "properties": { "selected": { "type": "null" } } }
+        }
+      ]
+    },
+    "outdoorsSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot_id", "status", "resolved_category", "selected"],
+      "properties": {
+        "slot_id": { "const": "OUTDOORS" },
+        "status": { "$ref": "#/$defs/slotStatus" },
+        "resolved_category": {
+          "type": ["string", "null"],
+          "enum": ["park", null]
+        },
+        "selected": {
+          "anyOf": [
+            { "$ref": "#/$defs/selectedVenue" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "SHARED_PRIMARY" } } },
+          "then": {
+            "properties": {
+              "selected": { "$ref": "#/$defs/selectedVenue" },
+              "resolved_category": { "const": "park" }
+            }
+          },
+          "else": { "properties": { "selected": { "type": "null" } } }
+        }
+      ]
+    },
+    "cityLifeSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slot_id", "status", "resolved_category", "selected"],
+      "properties": {
+        "slot_id": { "const": "CITY_LIFE" },
+        "status": { "$ref": "#/$defs/slotStatus" },
+        "resolved_category": {
+          "type": ["string", "null"],
+          "enum": ["restaurant", "shopping_mall", null]
+        },
+        "selected": {
+          "anyOf": [
+            { "$ref": "#/$defs/selectedVenue" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "SHARED_PRIMARY" } } },
+          "then": {
+            "properties": {
+              "selected": { "$ref": "#/$defs/selectedVenue" },
+              "resolved_category": { "enum": ["restaurant", "shopping_mall"] }
+            }
+          },
+          "else": { "properties": { "selected": { "type": "null" } } }
+        }
+      ]
+    },
+    "validationResult": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["status", "checks"],
+      "properties": {
+        "status": { "type": "string", "enum": ["PASS", "FAIL"] },
+        "checks": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entity_ids_unchanged",
+            "slot_order_unchanged",
+            "ranks_unchanged",
+            "no_extra_venues",
+            "empty_slots_preserved",
+            "claims_within_truth_contract"
+          ],
+          "properties": {
+            "entity_ids_unchanged": { "type": "boolean" },
+            "slot_order_unchanged": { "type": "boolean" },
+            "ranks_unchanged": { "type": "boolean" },
+            "no_extra_venues": { "type": "boolean" },
+            "empty_slots_preserved": { "type": "boolean" },
+            "claims_within_truth_contract": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "runError": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "PROFILE_RESOLUTION_FAILED",
+            "QLOO_RETRIEVAL_FAILED",
+            "EXPLANATION_VALIDATION_FAILED",
+            "INTERNAL_CONTRACT_VIOLATION"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1, "maxLength": 500 }
+      }
+    }
+  }
+}

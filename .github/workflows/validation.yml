@@ -144,3 +144,11 @@ jobs:
       - name: Test QMBT-2R direct-location development mutation guards
         shell: pwsh
         run: ./scripts/validation/Test-Qmbt2rDirectLocationDevelopment.Tests.ps1
+
+      - name: Validate Judge Experience state-machine contract offline
+        shell: pwsh
+        run: ./scripts/validation/Test-JudgeExperienceContract.ps1
+
+      - name: Test Judge Experience behavioral invariants and mutation guards
+        shell: pwsh
+        run: ./scripts/validation/Test-JudgeExperienceContract.Tests.ps1
