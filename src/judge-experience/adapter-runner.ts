@@ -17,6 +17,11 @@ import type {
 
 const EMPTY_EXPLANATION: ExplanationPayload = { slots: [] };
 
+export interface AdapterExecutionEnvelope {
+  readonly execution: FixtureExecutionResult;
+  readonly explanation_payload: ExplanationPayload | null;
+}
+
 function buildFixture(
   request: JudgeExperienceRunRequest,
   resolvedProfiles: readonly ResolvedProfile[],
@@ -67,10 +72,20 @@ function retrievalMatchesRequest(
   );
 }
 
-export async function executeWithAdapters(
+function envelope(
+  execution: FixtureExecutionResult,
+  explanationPayload: ExplanationPayload | null,
+): AdapterExecutionEnvelope {
+  return {
+    execution,
+    explanation_payload: explanationPayload,
+  };
+}
+
+export async function executeWithAdaptersEnvelope(
   request: JudgeExperienceRunRequest,
   adapters: JudgeExperienceAdapters,
-): Promise<FixtureExecutionResult> {
+): Promise<AdapterExecutionEnvelope> {
   const profiles: ResolvedProfile[] = [];
 
   for (const side of ['A', 'B'] as const) {
@@ -91,8 +106,9 @@ export async function executeWithAdapters(
 
       profiles.push(profile);
     } catch {
-      return executeFixtureRun(
-        buildFixture(request, [], [], EMPTY_EXPLANATION),
+      return envelope(
+        executeFixtureRun(buildFixture(request, [], [], EMPTY_EXPLANATION)),
+        null,
       );
     }
   }
@@ -101,8 +117,9 @@ export async function executeWithAdapters(
   for (const side of ['A', 'B'] as const) {
     const profile = profiles.find((item) => item.side === side);
     if (!profile) {
-      return executeFixtureRun(
-        buildFixture(request, [], [], EMPTY_EXPLANATION),
+      return envelope(
+        executeFixtureRun(buildFixture(request, [], [], EMPTY_EXPLANATION)),
+        null,
       );
     }
 
@@ -132,14 +149,20 @@ export async function executeWithAdapters(
     const reconciliation = reconcileAll(retrievals);
     slots = assembleSlots(reconciliation);
   } catch {
-    return executeFixtureRun(
-      buildFixture(request, profiles, retrievals, EMPTY_EXPLANATION),
+    return envelope(
+      executeFixtureRun(
+        buildFixture(request, profiles, retrievals, EMPTY_EXPLANATION),
+      ),
+      null,
     );
   }
 
   if (slots.some((slot) => slot.status === 'EVIDENCE_UNAVAILABLE')) {
-    return executeFixtureRun(
-      buildFixture(request, profiles, retrievals, EMPTY_EXPLANATION),
+    return envelope(
+      executeFixtureRun(
+        buildFixture(request, profiles, retrievals, EMPTY_EXPLANATION),
+      ),
+      null,
     );
   }
 
@@ -154,7 +177,18 @@ export async function executeWithAdapters(
     explanationPayload = EMPTY_EXPLANATION;
   }
 
-  return executeFixtureRun(
-    buildFixture(request, profiles, retrievals, explanationPayload),
+  return envelope(
+    executeFixtureRun(
+      buildFixture(request, profiles, retrievals, explanationPayload),
+    ),
+    explanationPayload,
   );
+}
+
+export async function executeWithAdapters(
+  request: JudgeExperienceRunRequest,
+  adapters: JudgeExperienceAdapters,
+): Promise<FixtureExecutionResult> {
+  const result = await executeWithAdaptersEnvelope(request, adapters);
+  return result.execution;
 }

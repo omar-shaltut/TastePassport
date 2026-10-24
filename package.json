@@ -7,7 +7,9 @@
   },
   "scripts": {
     "typecheck": "npx --yes -p typescript@5.8.3 tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test tests/judge-experience/*.test.ts",
-    "fixture": "node --experimental-strip-types scripts/run-judge-fixture.ts"
+    "test": "node --experimental-strip-types --test tests/judge-experience/*.test.ts tests/frontend/*.test.ts",
+    "fixture": "node --experimental-strip-types scripts/run-judge-fixture.ts",
+    "frontend:payload": "node --experimental-strip-types scripts/run-judge-frontend-payload.ts",
+    "frontend:dev": "node --experimental-strip-types scripts/serve-judge-frontend.ts"
   }
 }

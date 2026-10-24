@@ -24,10 +24,15 @@ jobs:
       - name: Typecheck strict TypeScript contracts
         run: npm run typecheck
 
-      - name: Run implementation skeleton tests
+      - name: Run implementation and frontend tests
         run: npm test
 
       - name: Run deterministic fixture smoke test
         run: |
           npm run --silent fixture -- tests/fixtures/judge-experience/ready.json > fixture-output.json
           node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('fixture-output.json','utf8')); if(x.state!=='READY') throw new Error('Fixture did not reach READY'); const ids=x.slots.map(s=>s.selected&&s.selected.entity_id); if(ids.join('|')!=='shared-museum|shared-park|shared-mall') throw new Error('Fixture slot payload changed');"
+
+      - name: Run frontend consumption smoke test
+        run: |
+          npm run --silent frontend:payload > frontend-output.json
+          node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('frontend-output.json','utf8')); if(x.schema_version!=='JUDGE_FRONTEND_V1'||x.state!=='READY') throw new Error('Frontend payload contract failed'); const ids=x.cards.map(c=>c.entity_id); if(ids.join('|')!=='shared-museum|shared-park|shared-mall') throw new Error('Frontend card payload changed'); const raw=JSON.stringify(x); for(const k of ['retrievals','qloo_seed_entity_ids','ordered_shared_candidates']) if(raw.includes(k)) throw new Error('Raw evidence leaked: '+k);"
