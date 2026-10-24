@@ -1,0 +1,33 @@
+name: Implementation Skeleton Validation
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  typescript-skeleton:
+    name: TypeScript implementation skeleton
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+
+      - name: Typecheck strict TypeScript contracts
+        run: npm run typecheck
+
+      - name: Run implementation skeleton tests
+        run: npm test
+
+      - name: Run deterministic fixture smoke test
+        run: |
+          npm run --silent fixture -- tests/fixtures/judge-experience/ready.json > fixture-output.json
+          node -e "const fs=require('fs'); const x=JSON.parse(fs.readFileSync('fixture-output.json','utf8')); if(x.state!=='READY') throw new Error('Fixture did not reach READY'); const ids=x.slots.map(s=>s.selected&&s.selected.entity_id); if(ids.join('|')!=='shared-museum|shared-park|shared-mall') throw new Error('Fixture slot payload changed');"

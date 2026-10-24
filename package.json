@@ -1,0 +1,13 @@
+{
+  "name": "tastepassport",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "scripts": {
+    "typecheck": "npx --yes -p typescript@5.8.3 tsc -p tsconfig.json --noEmit",
+    "test": "node --experimental-strip-types --test tests/judge-experience/*.test.ts",
+    "fixture": "node --experimental-strip-types scripts/run-judge-fixture.ts"
+  }
+}

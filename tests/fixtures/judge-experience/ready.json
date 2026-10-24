@@ -1,0 +1,33 @@
+{
+  "contract_version": "JUDGE_EXPERIENCE_V1",
+  "selector_policy_id": "LEXIMIN_RANK_V1",
+  "slot_contract_id": "CROSS_CATEGORY_SLOT_CONTRACT_V1",
+  "run_id": "fixture-ready-v1",
+  "destination_city": "London",
+  "resolved_profiles": [
+    {"side":"A","profile_ref":"fixture-a","qloo_seed_entity_ids":["seed-a-1"]},
+    {"side":"B","profile_ref":"fixture-b","qloo_seed_entity_ids":["seed-b-1"]}
+  ],
+  "retrievals": [
+    {"side":"A","category":"art_gallery","destination_city":"London","status":"COMPLETE","entities":[{"entity_id":"gallery-perfect","rank":1,"name":"Gallery Perfect","display_type":"Art Gallery"}]},
+    {"side":"B","category":"art_gallery","destination_city":"London","status":"COMPLETE","entities":[{"entity_id":"gallery-perfect","rank":1,"name":"Gallery Perfect","display_type":"Art Gallery"}]},
+    {"side":"A","category":"book_store","destination_city":"London","status":"COMPLETE","entities":[]},
+    {"side":"B","category":"book_store","destination_city":"London","status":"COMPLETE","entities":[]},
+    {"side":"A","category":"museum","destination_city":"London","status":"COMPLETE","entities":[{"entity_id":"museum-a-only","rank":1},{"entity_id":"shared-museum","rank":2,"name":"Shared Museum","display_type":"Museum"},{"entity_id":"shared-museum","rank":8,"name":"Duplicate Later"}]},
+    {"side":"B","category":"museum","destination_city":"London","status":"COMPLETE","entities":[{"entity_id":"museum-b-only","rank":1},{"entity_id":"shared-museum","rank":3,"name":"Shared Museum","display_type":"Museum"}]},
+    {"side":"A","category":"park","destination_city":"London","status":"COMPLETE","entities":[{"entity_id":"shared-museum","rank":1,"name":"Shared Museum","display_type":"Park-tagged"},{"entity_id":"shared-park","rank":2,"name":"Shared Park","display_type":"Park"}]},
+    {"side":"B","category":"park","destination_city":"London","status":"COMPLETE","entities":[{"entity_id":"shared-museum","rank":1,"name":"Shared Museum","display_type":"Park-tagged"},{"entity_id":"shared-park","rank":2,"name":"Shared Park","display_type":"Park"}]},
+    {"side":"A","category":"restaurant","destination_city":"London","status":"COMPLETE","entities":[{"entity_id":"restaurant-a","rank":1}]},
+    {"side":"B","category":"restaurant","destination_city":"London","status":"COMPLETE","entities":[{"entity_id":"restaurant-b","rank":1}]},
+    {"side":"A","category":"shopping_mall","destination_city":"London","status":"COMPLETE","entities":[{"entity_id":"shared-mall","rank":2,"name":"Shared City Place","display_type":"Shopping Mall"}]},
+    {"side":"B","category":"shopping_mall","destination_city":"London","status":"COMPLETE","entities":[{"entity_id":"shared-mall","rank":1,"name":"Shared City Place","display_type":"Shopping Mall"}]}
+  ],
+  "explanation_payload": {
+    "shared_taste_summary": "Qloo surfaced strong shared evidence across culture, outdoors, and city life.",
+    "slots": [
+      {"slot_id":"CULTURE","entity_id":"shared-museum","name":"Shared Museum","rank_a":2,"rank_b":3,"why_it_works":"Qloo surfaced this museum for both profiles."},
+      {"slot_id":"OUTDOORS","entity_id":"shared-park","name":"Shared Park","rank_a":2,"rank_b":2,"why_it_works":"Qloo surfaced this park for both profiles."},
+      {"slot_id":"CITY_LIFE","entity_id":"shared-mall","name":"Shared City Place","rank_a":2,"rank_b":1,"why_it_works":"Qloo surfaced this city-life venue for both profiles."}
+    ]
+  }
+}
